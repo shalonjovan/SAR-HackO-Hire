@@ -1,199 +1,450 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SAR Narrative Generator</title>
+    <title>SAR Narrative System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            margin: 0;
-            background: #0f172a;
-            color: #e2e8f0;
+        :root {
+            --bg: #f4f6f9; --card: #ffffff; --text: #1a1a1a;
+            --border: #d0d5dd; --primary: #1e2a38;
+            --button-bg: #1e2a38; --button-text: #ffffff;
         }
+        body.dark {
+            --bg: #0f172a; --card: #1e293b; --text: #e2e8f0;
+            --border: #334155; --primary: #0b1220;
+            --button-bg: #2563eb; --button-text: #ffffff;
+        }
+        body { margin:0; font-family:"Segoe UI",Arial,sans-serif; background:var(--bg); color:var(--text); transition:all 0.3s ease; }
+        .header { background:var(--primary); color:#fff; padding:18px 40px; font-weight:600; display:flex; justify-content:space-between; align-items:center; }
+        .toggle { position:relative; width:50px; height:26px; background:#ccc; border-radius:30px; cursor:pointer; transition:0.3s; }
+        .toggle-circle { position:absolute; top:3px; left:3px; width:20px; height:20px; background:white; border-radius:50%; transition:0.3s; }
+        body.dark .toggle { background:#2563eb; }
+        body.dark .toggle-circle { transform:translateX(24px); }
+        .container { max-width:950px; margin:40px auto; padding:0 20px; }
+        .card { background:var(--card); padding:30px; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,0.06); margin-bottom:30px; }
+        label { font-weight:600; }
+        input, textarea { width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); margin-top:6px; margin-bottom:20px; background:transparent; color:var(--text); box-sizing:border-box; }
+        button { padding:10px 20px; border-radius:6px; border:none; font-size:14px; font-weight:600; cursor:pointer; }
+        .primary-btn { background:var(--button-bg); color:var(--button-text); }
+        .secondary-btn { background:transparent; border:1px solid var(--border); color:var(--text); }
+        .status { margin-top:10px; font-size:14px; }
+        .actions { margin-top:20px; }
 
-        .container {
-            max-width: 900px;
-            margin: auto;
-            padding: 40px 20px;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 40px;
-            font-weight: 600;
-        }
-
-        .card {
-            background: #1e293b;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 0 25px rgba(0,0,0,0.3);
-            margin-bottom: 25px;
-        }
-
-        label {
-            font-weight: 500;
-        }
-
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            margin-top: 8px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            border: none;
-            background: #334155;
-            color: white;
-            font-size: 14px;
-        }
-
-        textarea {
-            resize: vertical;
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            background: linear-gradient(90deg, #2563eb, #3b82f6);
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: 0.3s;
-        }
-
-        button:hover {
-            opacity: 0.9;
-        }
-
-        button:disabled {
-            background: #64748b;
-            cursor: not-allowed;
-        }
-
-        .loader {
-            display: none;
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .spinner {
-            border: 4px solid #334155;
-            border-top: 4px solid #3b82f6;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            background: #0f172a;
-            padding: 20px;
-            border-radius: 8px;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-
-        .success {
-            color: #22c55e;
-            font-weight: 600;
-            margin-bottom: 15px;
-        }
-
-        .error {
-            color: #ef4444;
-            font-weight: 600;
-        }
+        /* SAR display styles */
+        .sar-report { font-family:"Courier New",Courier,monospace; font-size:13.5px; line-height:1.75; color:var(--text); }
+        .sar-title { font-size:17px; font-weight:700; text-align:center; letter-spacing:1px; margin-bottom:4px; }
+        .sar-meta { text-align:center; font-size:12px; color:#888; margin-bottom:4px; }
+        .sar-divider { border:none; border-top:2px solid var(--border); margin:16px 0; }
+        .sar-section-header { font-weight:700; font-size:13px; letter-spacing:0.5px; margin-top:20px; margin-bottom:6px; border-bottom:1px solid var(--border); padding-bottom:4px; }
+        .sar-bullet { margin:4px 0; padding-left:20px; position:relative; }
+        .sar-bullet::before { content:"–"; position:absolute; left:6px; }
+        .sar-bullet .field-label { font-weight:700; }
+        .sar-tx-entry { margin:10px 0 10px 12px; padding:8px 12px; border-left:3px solid var(--border); }
+        .sar-tx-entry .tx-id { font-weight:700; margin-bottom:2px; }
+        .sar-tx-entry .tx-field { padding-left:8px; margin:1px 0; }
+        .sar-field { margin:3px 0; padding-left:12px; }
+        .sar-field .field-label { font-weight:700; }
+        .sar-narrative { padding-left:12px; line-height:1.8; }
+        .sar-footer { text-align:center; font-size:11px; color:#888; margin-top:24px; padding-top:10px; border-top:1px dashed var(--border); letter-spacing:0.5px; }
     </style>
 </head>
-
 <body>
+
+<div class="header">
+    SAR Narrative Generator — Compliance Console
+    <div class="toggle" onclick="toggleTheme()"><div class="toggle-circle"></div></div>
+</div>
+
 <div class="container">
-
-    <h1>🚨 SAR Narrative Generator</h1>
-
     <div class="card">
         <label>Customer ID</label>
-        <input type="text" id="customer_id" placeholder="Enter Customer ID">
-
-        <label>Alert Reason</label>
-        <textarea id="reason" rows="4" placeholder="Describe suspicious activity..."></textarea>
-
-        <button id="generateBtn" onclick="submitAlert()">Generate SAR</button>
-
-        <div class="loader" id="loader">
-            <div class="spinner"></div>
-            <p>Generating SAR Narrative... Please wait ⏳</p>
+        <input type="text" id="customer_id">
+        <label>Alert Description</label>
+        <textarea id="reason" rows="4"></textarea>
+        <button class="primary-btn" id="generateBtn" onclick="submitAlert()">Generate SAR</button>
+        <div class="status" id="status"></div>
+    </div>
+    <div class="card">
+        <div id="sarContent" class="report-section">
+            <p style="color:#888;">No report generated.</p>
+        </div>
+        <div class="actions" id="downloadSection" style="display:none;">
+            <button class="secondary-btn" onclick="downloadPDF()">Download as PDF</button>
         </div>
     </div>
-
-    <div class="card">
-        <h3>📄 Generated SAR</h3>
-        <pre id="output">Your SAR will appear here...</pre>
-    </div>
-
 </div>
 
 <script>
-async function submitAlert() {
+const { jsPDF } = window.jspdf;
 
-    const button = document.getElementById("generateBtn");
-    const loader = document.getElementById("loader");
-    const output = document.getElementById("output");
+let currentAlertId = null;
+let lastSarText = "";
 
-    const customer_id = document.getElementById("customer_id").value;
-    const reason = document.getElementById("reason").value;
+function toggleTheme() { document.body.classList.toggle("dark"); }
 
-    if (!customer_id || !reason) {
-        output.innerText = "Please provide both Customer ID and Reason.";
-        return;
-    }
+/* ── Render SAR text into styled HTML for display ── */
+function renderSAR(text) {
+    const lines = text.split("\n");
+    let html = '<div class="sar-report">';
+    let inTxBlock = false;
+    let txHtml = "";
 
-    const alert_id = "ALERT_" + Date.now();
+    for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i];
+        const line = raw.trim();
 
-    button.disabled = true;
-    loader.style.display = "block";
-    output.innerText = "";
+        if (line === "") {
+            if (inTxBlock && txHtml) { html += txHtml + "</div>"; txHtml = ""; inTxBlock = false; }
+            continue;
+        }
+        if (/^-{3,}$/.test(line)) { html += '<hr class="sar-divider">'; continue; }
+        if (line.startsWith("SUSPICIOUS ACTIVITY REPORT")) { html += `<div class="sar-title">${line}</div>`; continue; }
+        if (line.startsWith("Report ID:") || line.startsWith("Date Generated:")) { html += `<div class="sar-meta">${line}</div>`; continue; }
+        if (/^SECTION\s+\d+\s*[—–-]/i.test(line)) { html += `<div class="sar-section-header">${line}</div>`; continue; }
+        if (line.startsWith("CONFIDENTIAL")) { html += `<div class="sar-footer">${line}</div>`; continue; }
 
-    try {
-
-        const response = await fetch("/alert", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                alert_id: alert_id,
-                customer_id: customer_id,
-                reason: reason
-            })
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.detail || "Failed to build case");
+        const txMatch = line.match(/^(\d+)\.\s+Transaction ID:\s*(.+)/i);
+        if (txMatch) {
+            if (inTxBlock && txHtml) { html += txHtml + "</div>"; }
+            inTxBlock = true;
+            txHtml = `<div class="sar-tx-entry"><div class="tx-id">Transaction ${txMatch[1]} — ID: ${txMatch[2]}</div>`;
+            continue;
         }
 
-        const sarResponse = await fetch(`/case/${alert_id}`);
-        const sarData = await sarResponse.json();
+        if (inTxBlock && (raw.startsWith("   ") || raw.startsWith("\t"))) {
+            const ci = line.indexOf(":");
+            if (ci > -1) {
+                txHtml += `<div class="tx-field"><span class="field-label">${line.substring(0,ci).trim()}:</span> ${line.substring(ci+1).trim()}</div>`;
+            } else { txHtml += `<div class="tx-field">${line}</div>`; }
+            continue;
+        }
 
-        output.innerText = sarData;
+        if (inTxBlock) { html += txHtml + "</div>"; txHtml = ""; inTxBlock = false; }
 
-    } catch (error) {
-        output.innerText = "Error: " + error.message;
+        if (/^[-•]/.test(line)) {
+            const content = line.replace(/^[-•]\s*/, "");
+            const ci = content.indexOf(":");
+            if (ci > -1 && ci < 40) {
+                html += `<div class="sar-bullet"><span class="field-label">${content.substring(0,ci).trim()}:</span> ${content.substring(ci+1).trim()}</div>`;
+            } else { html += `<div class="sar-bullet">${content}</div>`; }
+            continue;
+        }
+
+        const ci = line.indexOf(":");
+        if (ci > -1 && ci < 50 && !/[a-z]/.test(line.substring(0, ci))) {
+            html += `<div class="sar-field"><span class="field-label">${line.substring(0,ci).trim()}:</span> ${line.substring(ci+1).trim()}</div>`;
+            continue;
+        }
+
+        html += `<div class="sar-narrative">${line}</div>`;
     }
 
-    loader.style.display = "none";
+    if (inTxBlock && txHtml) { html += txHtml + "</div>"; }
+    html += "</div>";
+    return html;
+}
+
+/* ── Generate PDF directly from raw text using jsPDF ── */
+function downloadPDF() {
+    const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+
+    const pageW   = 210;
+    const pageH   = 297;
+    const margin  = 18;
+    const contentW = pageW - margin * 2;
+    let y = 0;
+
+    /* ── Helpers ── */
+    function checkNewPage(needed) {
+        if (y + needed > pageH - 14) {
+            doc.addPage();
+            y = 14;
+        }
+    }
+
+    function drawHeader() {
+        // Navy banner
+        doc.setFillColor(30, 42, 56);
+        doc.rect(0, 0, pageW, 18, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(255, 255, 255);
+        doc.text("Financial Crime Compliance Unit", margin, 7.5);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(200, 210, 220);
+        doc.text("Internal Use Only — Not for External Distribution", margin, 13);
+        // Red CONFIDENTIAL stamp
+        doc.setFillColor(192, 57, 43);
+        doc.roundedRect(pageW - margin - 28, 4, 28, 10, 1.5, 1.5, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(6.5);
+        doc.setTextColor(255, 255, 255);
+        doc.text("CONFIDENTIAL", pageW - margin - 14, 10.2, { align: "center" });
+        y = 26;
+    }
+
+    function drawFooter(pageNum) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Page ${pageNum}`, pageW / 2, pageH - 6, { align: "center" });
+        doc.text(`SAR Report — ${currentAlertId}`, margin, pageH - 6);
+    }
+
+    function wrapText(text, fontSize, fontStyle, maxWidth) {
+        doc.setFont("helvetica", fontStyle);
+        doc.setFontSize(fontSize);
+        return doc.splitTextToSize(text, maxWidth);
+    }
+
+    /* ── Parse and render text lines ── */
+    const lines = lastSarText.split("\n");
+    let pageNum = 1;
+
+    drawHeader();
+    drawFooter(pageNum);
+
+    for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i];
+        const line = raw.trim();
+
+        if (line === "") { y += 2; continue; }
+
+        // ── Divider ---
+        if (/^-{3,}$/.test(line)) {
+            checkNewPage(4);
+            doc.setDrawColor(30, 42, 56);
+            doc.setLineWidth(0.4);
+            doc.line(margin, y, pageW - margin, y);
+            y += 5;
+            continue;
+        }
+
+        // ── Main title
+        if (line.startsWith("SUSPICIOUS ACTIVITY REPORT")) {
+            checkNewPage(14);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(15);
+            doc.setTextColor(30, 42, 56);
+            doc.text(line, pageW / 2, y, { align: "center" });
+            y += 8;
+            continue;
+        }
+
+        // ── Meta (Report ID / Date)
+        if (line.startsWith("Report ID:") || line.startsWith("Date Generated:")) {
+            checkNewPage(6);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8.5);
+            doc.setTextColor(100, 100, 100);
+            doc.text(line, pageW / 2, y, { align: "center" });
+            y += 5.5;
+            continue;
+        }
+
+        // ── Section header
+        if (/^SECTION\s+\d+\s*[—–-]/i.test(line)) {
+            checkNewPage(14);
+            if (y > 30) y += 3;
+            // Background band
+            doc.setFillColor(238, 241, 245);
+            doc.rect(margin, y - 4.5, contentW, 8, "F");
+            // Left accent bar
+            doc.setFillColor(30, 42, 56);
+            doc.rect(margin, y - 4.5, 1.5, 8, "F");
+            // Text
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.setTextColor(30, 42, 56);
+            doc.text(line.toUpperCase(), margin + 4, y + 0.5);
+            y += 7;
+            continue;
+        }
+
+        // ── CONFIDENTIAL footer line
+        if (line.startsWith("CONFIDENTIAL")) {
+            checkNewPage(10);
+            y += 4;
+            doc.setDrawColor(180, 180, 180);
+            doc.setLineWidth(0.3);
+            doc.line(margin, y, pageW - margin, y);
+            y += 4;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7.5);
+            doc.setTextColor(130, 130, 130);
+            doc.text(line, pageW / 2, y, { align: "center" });
+            y += 5;
+            continue;
+        }
+
+        // ── Numbered transaction header "1. Transaction ID: ..."
+        const txMatch = line.match(/^(\d+)\.\s+Transaction(?:\s+\d+\s*[—–-])?\s*(?:ID:)?\s*(.+)/i)
+                     || line.match(/^Transaction\s+(\d+)\s*[—–-]\s*ID:\s*(.+)/i);
+        if (txMatch || /^Transaction \d+/.test(line)) {
+            checkNewPage(10);
+            y += 2;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.setTextColor(30, 42, 56);
+            doc.text(line, margin + 2, y);
+            // Underline
+            doc.setDrawColor(30, 42, 56);
+            doc.setLineWidth(0.2);
+            doc.line(margin + 2, y + 1, margin + 80, y + 1);
+            y += 5;
+            continue;
+        }
+
+        // ── Indented tx sub-fields
+        if (raw.startsWith("   ") || raw.startsWith("\t")) {
+            checkNewPage(5);
+            const ci = line.indexOf(":");
+            if (ci > -1) {
+                const label = line.substring(0, ci).trim();
+                const value = line.substring(ci + 1).trim();
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9);
+                doc.setTextColor(60, 60, 60);
+                doc.text(label + ":", margin + 6, y);
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(30, 30, 30);
+                const valLines = doc.splitTextToSize(value, contentW - 50);
+                doc.text(valLines, margin + 40, y);
+                y += valLines.length * 4.5;
+            } else {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9);
+                doc.setTextColor(50, 50, 50);
+                doc.text(line, margin + 6, y);
+                y += 4.5;
+            }
+            continue;
+        }
+
+        // ── Bullet points (- Key: Value or - plain text)
+        if (/^[-•]/.test(line)) {
+            const content = line.replace(/^[-•]\s*/, "");
+            const ci = content.indexOf(":");
+            checkNewPage(6);
+
+            // Bullet dot
+            doc.setFillColor(30, 42, 56);
+            doc.circle(margin + 2.5, y - 1.2, 0.8, "F");
+
+            if (ci > -1 && ci < 40) {
+                const label = content.substring(0, ci).trim();
+                const value = content.substring(ci + 1).trim();
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9.5);
+                doc.setTextColor(30, 42, 56);
+                doc.text(label + ":", margin + 5, y);
+                const labelW = doc.getTextWidth(label + ": ");
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(30, 30, 30);
+                const valLines = doc.splitTextToSize(value, contentW - 5 - labelW);
+                doc.text(value, margin + 5 + labelW, y);
+                if (valLines.length > 1) {
+                    for (let v = 1; v < valLines.length; v++) {
+                        y += 4.8;
+                        doc.text(valLines[v], margin + 5 + labelW, y);
+                    }
+                }
+            } else {
+                const wrapped = doc.splitTextToSize(content, contentW - 6);
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9.5);
+                doc.setTextColor(30, 30, 30);
+                doc.text(wrapped, margin + 5, y);
+                y += (wrapped.length - 1) * 4.8;
+            }
+            y += 5.2;
+            continue;
+        }
+
+        // ── Key: Value field (uppercase key)
+        const ci = line.indexOf(":");
+        if (ci > -1 && ci < 50 && !/[a-z]/.test(line.substring(0, ci))) {
+            checkNewPage(6);
+            const label = line.substring(0, ci).trim();
+            const value = line.substring(ci + 1).trim();
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9.5);
+            doc.setTextColor(50, 50, 50);
+            doc.text(label + ":", margin + 2, y);
+            const lw = doc.getTextWidth(label + ":  ");
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(30, 30, 30);
+            const valLines = doc.splitTextToSize(value, contentW - lw - 2);
+            doc.text(valLines[0] || "", margin + 2 + lw, y);
+            for (let v = 1; v < valLines.length; v++) {
+                y += 4.8;
+                checkNewPage(5);
+                doc.text(valLines[v], margin + 2 + lw, y);
+            }
+            y += 5.5;
+            continue;
+        }
+
+        // ── Narrative / default paragraph text
+        checkNewPage(6);
+        const wrapped = doc.splitTextToSize(line, contentW);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9.5);
+        doc.setTextColor(30, 30, 30);
+        doc.text(wrapped, margin + 2, y);
+        const lineCount = wrapped.length;
+        y += lineCount * 5.2;
+
+        // Add page if needed, redraw header/footer
+        if (y > pageH - 18) {
+            drawFooter(pageNum);
+            doc.addPage();
+            pageNum++;
+            drawHeader();
+            drawFooter(pageNum);
+        }
+    }
+
+    // Final footer on last page
+    drawFooter(pageNum);
+
+    doc.save(`SAR_${currentAlertId}.pdf`);
+}
+
+async function submitAlert() {
+    const status = document.getElementById("status");
+    const sarDiv = document.getElementById("sarContent");
+    const button = document.getElementById("generateBtn");
+    const customer_id = document.getElementById("customer_id").value.trim();
+    const reason = document.getElementById("reason").value.trim();
+
+    if (!customer_id || !reason) { status.innerText = "Both fields are required."; return; }
+
+    currentAlertId = "ALERT_" + Date.now();
+    button.disabled = true;
+    status.innerText = "Generating SAR narrative...";
+
+    try {
+        await fetch("/alert", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ alert_id: currentAlertId, customer_id, reason })
+        });
+
+        const response = await fetch(`/case/${currentAlertId}`);
+        const sarText = await response.json();
+        lastSarText = sarText;
+
+        sarDiv.innerHTML = renderSAR(sarText);
+        status.innerText = "SAR generated successfully.";
+        document.getElementById("downloadSection").style.display = "block";
+
+    } catch (error) {
+        status.innerText = "Error generating report.";
+        console.error(error);
+    }
     button.disabled = false;
 }
 </script>
