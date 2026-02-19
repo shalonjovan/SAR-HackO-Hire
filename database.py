@@ -1,59 +1,46 @@
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import os
+from dotenv import load_dotenv
+from supabase import create_client
 
-DB_CONFIG = {
-    "dbname": "sar_prototype",
-    "user": "sar_user",
-    "password": "sar_pass",
-    "host": "localhost",
-    "port": "5432"
-}
+load_dotenv()
 
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 def get_account(account_id: str):
-    conn = get_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    cur.execute(
-        "SELECT * FROM accounts WHERE account_id = %s",
-        (account_id,)
+    response = (
+        supabase
+        .table("accounts")
+        .select("*")
+        .eq("account_id", account_id)
+        .single()
+        .execute()
     )
-    result = cur.fetchone()
-
-    cur.close()
-    conn.close()
-    return result
+    return response.data
 
 
-def get_transactions(account_id: str):
-    conn = get_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    cur.execute(
-        "SELECT * FROM transactions WHERE account_id = %s",
-        (account_id,)
+def get_transactions(customer_id: str):
+    response = (
+        supabase
+        .table("transactions")
+        .select("*")
+        .or_(f"sender_customer_id.eq.{customer_id},receiver_customer_id.eq.{customer_id}")
+        .execute()
     )
-    result = cur.fetchall()
 
-    cur.close()
-    conn.close()
-    return result
+    return response.data
 
 
 def get_kyc(customer_id: str):
-    conn = get_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    cur.execute(
-        "SELECT * FROM kyc WHERE customer_id = %s",
-        (customer_id,)
+    response = (
+        supabase
+        .table("kyc")
+        .select("*")
+        .eq("customer_id", customer_id)
+        .single()
+        .execute()
     )
-    result = cur.fetchone()
-
-    cur.close()
-    conn.close()
-    return result
+    return response.data
