@@ -24,12 +24,23 @@ def generateSAR(alert_id: str):
 
     # Construct the prompt for Gemini
     prompt = f"""
-    Generate a formal Suspicious Activity Report (SAR) based on the following alert data.
-    Include sections for:
+    You are a financial crime compliance assistant working at a bank.
+
+    Generate a Suspicious Activity Report (SAR) using the provided JSON.
+    Do not infer intent or criminal behavior.
+    Use neutral, regulatory-compliant language.
+    Clearly separate facts from observations.
+    This SAR is for training purposes only.
+
+    Output format:
     1. Subject Information
-    2. Suspicious Activity Description
-    3. Transaction Analysis
-    4. Conclusion/Recommendation
+    2. Account Summary
+    3. Alert Reason
+    4. Transaction Summary
+    5. Suspicious Activity Indicators
+    6. Narrative
+    7. Recommended Action
+
 
     Alert Data:
     {alert_data}
