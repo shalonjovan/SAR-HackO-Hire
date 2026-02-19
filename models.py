@@ -10,6 +10,6 @@ class AlertRequest(BaseModel):
 
 class CaseData(BaseModel):
     alert: Dict[str, Any]
-    # account: Dict[str, Any]
+    account: Dict[str, Any]
     transactions: List[Dict[str, Any]]
     # kyc: Dict[str, Any]
