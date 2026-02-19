@@ -35,3 +35,7 @@ def get_case(alert_id: str):
         raise HTTPException(status_code=404, detail="Case not found")
 
     return CASE_STORE[alert_id]
+
+@app.get("/all")
+def get_all_cases():
+    return CASE_STORE
