@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SAR Alert Generator</title>
+    <style>
+        body { font-family: Arial; margin: 40px; }
+        input, textarea, button { margin: 8px 0; width: 100%; padding: 8px; }
+        button { background: #007bff; color: white; border: none; }
+        pre { background: #f4f4f4; padding: 15px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+
+<h2>Generate SAR Alert</h2>
+
+<label>Customer ID</label>
+<input type="text" id="customer_id" placeholder="Enter Customer ID">
+
+<label>Reason</label>
+<textarea id="reason" placeholder="Why is this suspicious?"></textarea>
+
+<button onclick="submitAlert()">Generate Case</button>
+
+<h3>Case Data</h3>
+<pre id="output"></pre>
+
+<script>
+async function submitAlert() {
+    const customer_id = document.getElementById("customer_id").value;
+    const reason = document.getElementById("reason").value;
+
+    const alert_id = "ALERT_" + Date.now();
+
+    const response = await fetch("/alert", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            alert_id: alert_id,
+            customer_id: customer_id,
+            reason: reason
+        })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        document.getElementById("output").innerText = JSON.stringify(result, null, 2);
+        return;
+    }
+
+    const caseResponse = await fetch(`/data/${alert_id}`);
+    const caseData = await caseResponse.json();
+
+    document.getElementById("output").innerText = JSON.stringify(caseData, null, 2);
+}
+</script>
+
+</body>
+</html>

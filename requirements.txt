@@ -5,3 +5,4 @@ streamlit
 requests
 supabase
 python-dotenv
+jinja2

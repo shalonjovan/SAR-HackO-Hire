@@ -12,4 +12,5 @@ def build_case_data(alert):
         # "account": account,
         "transactions": transactions,
         # "kyc": kyc
+        "reason":alert.reason,
     }
