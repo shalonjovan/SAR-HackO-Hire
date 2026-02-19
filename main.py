@@ -4,7 +4,6 @@ from fastapi.templating import Jinja2Templates
 from models import AlertRequest
 from services import build_case_data, CASE_STORE
 from generator import generateSAR
-import uuid
 
 app = FastAPI(title="SAR Prototype Service")
 
@@ -37,6 +36,7 @@ def get_case(alert_id: str):
 
     return CASE_STORE[alert_id]
 
+
 @app.get("/case/{alert_id}")
 def get_SAR(alert_id: str):
     if alert_id not in CASE_STORE:
@@ -44,7 +44,7 @@ def get_SAR(alert_id: str):
 
     return generateSAR(alert_id)
 
+
 @app.get("/all")
 def get_all_cases():
     return CASE_STORE
-
