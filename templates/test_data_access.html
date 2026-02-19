@@ -50,7 +50,7 @@ async function submitAlert() {
         return;
     }
 
-    const caseResponse = await fetch(`/data/${alert_id}`);
+    const caseResponse = await fetch(`/case/${alert_id}`);
     const caseData = await caseResponse.json();
 
     document.getElementById("output").innerText = JSON.stringify(caseData, null, 2);
