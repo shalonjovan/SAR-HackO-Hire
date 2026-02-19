@@ -1,8 +1,8 @@
 fastapi
 uvicorn
 pydantic
-streamlit
 requests
 supabase
 python-dotenv
 jinja2
+google-generativeai
