@@ -1,4 +1,4 @@
-from main import app
+from fastapi import FastAPI
+from main import app as fastapi_app
 
-# Vercel expects this variable name
-handler = app
+app = fastapi_app
