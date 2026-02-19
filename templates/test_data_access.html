@@ -1,59 +1,200 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SAR Alert Generator</title>
+    <title>SAR Narrative Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <style>
-        body { font-family: Arial; margin: 40px; }
-        input, textarea, button { margin: 8px 0; width: 100%; padding: 8px; }
-        button { background: #007bff; color: white; border: none; }
-        pre { background: #f4f4f4; padding: 15px; overflow-x: auto; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-weight: 600;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.3);
+            margin-bottom: 25px;
+        }
+
+        label {
+            font-weight: 500;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: none;
+            background: #334155;
+            color: white;
+            font-size: 14px;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #334155;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 8px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .success {
+            color: #22c55e;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .error {
+            color: #ef4444;
+            font-weight: 600;
+        }
     </style>
 </head>
+
 <body>
+<div class="container">
 
-<h2>Generate SAR Alert</h2>
+    <h1>🚨 SAR Narrative Generator</h1>
 
-<label>Customer ID</label>
-<input type="text" id="customer_id" placeholder="Enter Customer ID">
+    <div class="card">
+        <label>Customer ID</label>
+        <input type="text" id="customer_id" placeholder="Enter Customer ID">
 
-<label>Reason</label>
-<textarea id="reason" placeholder="Why is this suspicious?"></textarea>
+        <label>Alert Reason</label>
+        <textarea id="reason" rows="4" placeholder="Describe suspicious activity..."></textarea>
 
-<button onclick="submitAlert()">Generate Case</button>
+        <button id="generateBtn" onclick="submitAlert()">Generate SAR</button>
 
-<h3>Case Data</h3>
-<pre id="output"></pre>
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <p>Generating SAR Narrative... Please wait ⏳</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>📄 Generated SAR</h3>
+        <pre id="output">Your SAR will appear here...</pre>
+    </div>
+
+</div>
 
 <script>
 async function submitAlert() {
+
+    const button = document.getElementById("generateBtn");
+    const loader = document.getElementById("loader");
+    const output = document.getElementById("output");
+
     const customer_id = document.getElementById("customer_id").value;
     const reason = document.getElementById("reason").value;
 
-    const alert_id = "ALERT_" + Date.now();
-
-    const response = await fetch("/alert", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            alert_id: alert_id,
-            customer_id: customer_id,
-            reason: reason
-        })
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-        document.getElementById("output").innerText = JSON.stringify(result, null, 2);
+    if (!customer_id || !reason) {
+        output.innerText = "Please provide both Customer ID and Reason.";
         return;
     }
 
-    const caseResponse = await fetch(`/case/${alert_id}`);
-    const caseData = await caseResponse.json();
+    const alert_id = "ALERT_" + Date.now();
 
-    document.getElementById("output").innerText = JSON.stringify(caseData, null, 2);
+    button.disabled = true;
+    loader.style.display = "block";
+    output.innerText = "";
+
+    try {
+
+        const response = await fetch("/alert", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                alert_id: alert_id,
+                customer_id: customer_id,
+                reason: reason
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.detail || "Failed to build case");
+        }
+
+        const sarResponse = await fetch(`/case/${alert_id}`);
+        const sarData = await sarResponse.json();
+
+        output.innerText = sarData;
+
+    } catch (error) {
+        output.innerText = "Error: " + error.message;
+    }
+
+    loader.style.display = "none";
+    button.disabled = false;
 }
 </script>
 
